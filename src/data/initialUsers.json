@@ -1,0 +1,20 @@
+{
+   "users": [
+      {
+         "id": "admin1",
+         "name": "System Admin",
+         "email": "admin@system.com",
+         "password": "admin123",
+         "role": "SYSTEM_ADMIN",
+         "createdAt": "2025-01-01T00:00:00Z"
+      },
+      {
+         "id": "clinic1",
+         "name": "City Medical Admin",
+         "email": "clinic@citymedical.com",
+         "password": "clinic123",
+         "role": "CLINIC_ADMIN",
+         "createdAt": "2025-01-01T00:00:00Z"
+      }
+   ]
+}
