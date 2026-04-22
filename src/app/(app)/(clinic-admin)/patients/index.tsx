@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Guard } from "../../../../components/Guard";
 import { Button } from "../../../../components/ui/Button";
-import { ClinicAdminAPI, Patient } from "../../../../services/mock/clinicAdmin";
+import { ClinicAdminAPI, Patient } from "../../../../services/clinicAdmin";
 
 export default function PatientsList() {
    const [loading, setLoading] = useState(true);

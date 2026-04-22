@@ -5,7 +5,7 @@ import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "rea
 import { Guard } from "../../../../components/Guard";
 import { Button } from "../../../../components/ui/Button";
 import { Input } from "../../../../components/ui/Input";
-import { ClinicAdminAPI } from "../../../../services/mock/clinicAdmin";
+import { ClinicAdminAPI } from "../../../../services/clinicAdmin";
 
 export default function AddReceptionist() {
    const [loading, setLoading] = useState(false);
@@ -50,8 +50,11 @@ export default function AddReceptionist() {
          await ClinicAdminAPI.addReceptionist(clinicId, formData);
          Alert.alert("Success", "Receptionist added successfully");
          router.back();
-      } catch (error) {
-         Alert.alert("Error", "Failed to add receptionist");
+      } catch (error: any) {
+         Alert.alert(
+            "Error",
+            error.message || "Failed to add receptionist",
+         );
       } finally {
          setSubmitting(false);
       }

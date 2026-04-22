@@ -13,7 +13,7 @@ import { Button } from "../../../../components/ui/Button";
 import {
    ClinicAdminAPI,
    Receptionist,
-} from "../../../../services/mock/clinicAdmin";
+} from "../../../../services/clinicAdmin";
 
 export default function ReceptionistsList() {
    const [loading, setLoading] = useState(true);

@@ -14,10 +14,8 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-
-// Update this to your FastAPI server address
-// Use your machine's local IP (not localhost) when testing on a physical device
-const CHATBOT_API_URL = "http://127.0.0.1:8000";
+import { getStoredToken } from "../../services/auth/sessionStorage";
+import { CHATBOT_API_URL } from "../../services/config";
 
 interface ChatMessage {
   id: string;
@@ -48,9 +46,13 @@ export default function ChatbotScreen() {
     setError("");
 
     try {
+        const token = await getStoredToken();
       const response = await fetch(`${CHATBOT_API_URL}/chat`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
         body: JSON.stringify({ question }),
       });
 

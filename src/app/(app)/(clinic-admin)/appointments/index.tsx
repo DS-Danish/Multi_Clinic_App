@@ -13,7 +13,7 @@ import { Button } from "../../../../components/ui/Button";
 import {
    Appointment,
    ClinicAdminAPI,
-} from "../../../../services/mock/clinicAdmin";
+} from "../../../../services/clinicAdmin";
 
 export default function AppointmentsList() {
    const [loading, setLoading] = useState(true);

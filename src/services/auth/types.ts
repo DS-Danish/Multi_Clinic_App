@@ -9,20 +9,24 @@ export interface User {
    id: string;
    name: string;
    email: string;
-   password: string; // stored plain text as requested
+   phone: string | null;
+   isActive: boolean;
+   password: string | null;
    role: UserRole;
    createdAt: string;
+   updatedAt: string;
 }
 
 export interface RegisterData {
    name: string;
    email: string;
    password: string;
-   role: Exclude<UserRole, "SYSTEM_ADMIN" | "CLINIC_ADMIN">; // only patient, doctor, receptionist
+   role: Exclude<UserRole, "SYSTEM_ADMIN" | "CLINIC_ADMIN">;
+   phone?: string;
 }
 
 export interface LoginCredentials {
    email: string;
    password: string;
-   role?: UserRole; // optional, can be used to filter
+   role?: UserRole;
 }

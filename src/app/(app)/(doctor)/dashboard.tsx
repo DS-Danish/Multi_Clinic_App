@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
    ScrollView,
    StyleSheet,
@@ -10,36 +10,99 @@ import {
 } from "react-native";
 import { Guard } from "../../../components/Guard";
 import { useAuth } from "../../../context/AuthContext";
+import { DoctorService } from "../../../services/doctor";
+import { ReportService } from "../../../services/report";
 
 export default function DoctorDashboard() {
    const { user } = useAuth();
-
-   const stats = [
+   const [stats, setStats] = useState([
       {
          label: "Today's Appointments",
-         value: "12",
+         value: "0",
          icon: "calendar-clock" as const,
          color: "#3b82f6",
       },
       {
          label: "Total Patients",
-         value: "248",
+         value: "0",
          icon: "account-group" as const,
          color: "#10b981",
       },
       {
          label: "Pending Reports",
-         value: "5",
+         value: "0",
          icon: "clipboard-list" as const,
          color: "#a855f7",
       },
       {
          label: "Active Clinics",
-         value: "2",
+         value: "0",
          icon: "hospital-building" as const,
          color: "#f97316",
       },
-   ];
+   ]);
+
+   useEffect(() => {
+      if (!user?.id) return;
+
+      const loadStats = async () => {
+         try {
+            const [appointments, patients, reports] = await Promise.all([
+               DoctorService.getAppointments(user.id),
+               DoctorService.getPatients(),
+               ReportService.getDoctorReports(user.id),
+            ]);
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const todaysAppointments = appointments.filter((appointment) => {
+               const start = new Date(appointment.startTime);
+               start.setHours(0, 0, 0, 0);
+               return start.getTime() === today.getTime();
+            }).length;
+
+            const activeClinics = new Set(
+               appointments.map((appointment) => appointment.clinicName),
+            ).size;
+
+            const pendingReports = appointments.filter(
+               (appointment) => !appointment.report,
+            ).length;
+
+            setStats([
+               {
+                  label: "Today's Appointments",
+                  value: String(todaysAppointments),
+                  icon: "calendar-clock" as const,
+                  color: "#3b82f6",
+               },
+               {
+                  label: "Total Patients",
+                  value: String(patients.length),
+                  icon: "account-group" as const,
+                  color: "#10b981",
+               },
+               {
+                  label: "Pending Reports",
+                  value: String(Math.max(pendingReports, 0)),
+                  icon: "clipboard-list" as const,
+                  color: "#a855f7",
+               },
+               {
+                  label: "Active Clinics",
+                  value: String(activeClinics),
+                  icon: "hospital-building" as const,
+                  color: "#f97316",
+               },
+            ]);
+         } catch (error) {
+            console.error("Failed to load doctor dashboard stats:", error);
+         }
+      };
+
+      loadStats();
+   }, [user?.id]);
 
    const quickActions = [
       {

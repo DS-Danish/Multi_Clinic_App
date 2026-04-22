@@ -12,7 +12,7 @@ import {
 import { Guard } from "../../../components/Guard";
 import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
-import { SuperAdminAPI } from "../../../services/mock/superAdmin";
+import { SuperAdminAPI } from "../../../services/superAdmin";
 
 export default function CreateClinic() {
    const [submitting, setSubmitting] = useState(false);
@@ -45,8 +45,8 @@ export default function CreateClinic() {
          await SuperAdminAPI.createClinicWithAdmin(formData);
          Alert.alert("Success", "Clinic and admin created successfully");
          router.back();
-      } catch (error) {
-         Alert.alert("Error", "Failed to create clinic");
+      } catch (error: any) {
+         Alert.alert("Error", error.message || "Failed to create clinic");
       } finally {
          setSubmitting(false);
       }

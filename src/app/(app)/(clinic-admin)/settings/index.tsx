@@ -12,7 +12,7 @@ import {
 import { Guard } from "../../../../components/Guard";
 import { Button } from "../../../../components/ui/Button";
 import { Input } from "../../../../components/ui/Input";
-import { Clinic, ClinicAdminAPI } from "../../../../services/mock/clinicAdmin";
+import { Clinic, ClinicAdminAPI } from "../../../../services/clinicAdmin";
 
 export default function ClinicSettings() {
    const [loading, setLoading] = useState(true);
@@ -51,18 +51,10 @@ export default function ClinicSettings() {
          return;
       }
 
-      setSaving(true);
-      try {
-         // In a real app, you would call an API to update the clinic
-         // For mock, we just simulate success
-         setTimeout(() => {
-            Alert.alert("Success", "Clinic settings updated successfully");
-            setSaving(false);
-         }, 1000);
-      } catch (error) {
-         Alert.alert("Error", "Failed to update clinic settings");
-         setSaving(false);
-      }
+      Alert.alert(
+         "Unavailable",
+         "Clinic settings updates are not exposed by the current backend yet.",
+      );
    };
 
    return (

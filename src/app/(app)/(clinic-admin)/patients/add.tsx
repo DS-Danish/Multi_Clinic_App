@@ -6,7 +6,7 @@ import { CustomPicker } from "../../../../components/CustomPicker";
 import { Guard } from "../../../../components/Guard";
 import { Button } from "../../../../components/ui/Button";
 import { Input } from "../../../../components/ui/Input";
-import { ClinicAdminAPI } from "../../../../services/mock/clinicAdmin";
+import { ClinicAdminAPI } from "../../../../services/clinicAdmin";
 
 export default function AddPatient() {
    const [loading, setLoading] = useState(false);
@@ -53,8 +53,8 @@ export default function AddPatient() {
          await ClinicAdminAPI.addPatient(clinicId, formData);
          Alert.alert("Success", "Patient added successfully");
          router.back();
-      } catch (error) {
-         Alert.alert("Error", "Failed to add patient");
+      } catch (error: any) {
+         Alert.alert("Error", error.message || "Failed to add patient");
       } finally {
          setSubmitting(false);
       }

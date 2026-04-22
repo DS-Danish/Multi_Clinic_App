@@ -5,7 +5,7 @@ import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "rea
 import { Guard } from "../../../../components/Guard";
 import { Button } from "../../../../components/ui/Button";
 import { Input } from "../../../../components/ui/Input";
-import { ClinicAdminAPI } from "../../../../services/mock/clinicAdmin";
+import { ClinicAdminAPI } from "../../../../services/clinicAdmin";
 
 export default function AddDoctor() {
    const [loading, setLoading] = useState(false);
@@ -48,19 +48,18 @@ export default function AddDoctor() {
 
       setSubmitting(true);
       try {
-         // Map specialty to specialityIds (mock expects array)
          const payload = {
             name: formData.name,
             email: formData.email,
             password: formData.password,
             phone: formData.phone || undefined,
-            specialityIds: formData.specialty ? [formData.specialty] : [],
+            specialityIds: [],
          };
          await ClinicAdminAPI.addDoctor(clinicId, payload);
          Alert.alert("Success", "Doctor added successfully");
          router.back();
-      } catch (error) {
-         Alert.alert("Error", "Failed to add doctor");
+      } catch (error: any) {
+         Alert.alert("Error", error.message || "Failed to add doctor");
       } finally {
          setSubmitting(false);
       }

@@ -1,48 +1,28 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { FlatList, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Guard } from "../../../components/Guard";
 import { useAuth } from "../../../context/AuthContext";
-
-// Types
-type Patient = {
-   id: string;
-   name: string;
-   email: string;
-   phone?: string | null;
-   createdAt: string;
-};
-
-// Mock data
-const MOCK_PATIENTS: Patient[] = [
-   {
-      id: "1",
-      name: "John Smith",
-      email: "john.smith@email.com",
-      phone: "(555) 123-4567",
-      createdAt: "2024-01-15T10:00:00Z",
-   },
-   {
-      id: "2",
-      name: "Emily Johnson",
-      email: "emily.j@email.com",
-      phone: "(555) 987-6543",
-      createdAt: "2024-02-20T14:30:00Z",
-   },
-   {
-      id: "3",
-      name: "Michael Brown",
-      email: "mbrown@email.com",
-      phone: null,
-      createdAt: "2024-03-10T09:15:00Z",
-   },
-];
+import { DoctorPatient, DoctorService } from "../../../services/doctor";
 
 export default function DoctorPatients() {
    const { user } = useAuth();
    const [searchQuery, setSearchQuery] = useState("");
-   const [patients] = useState<Patient[]>(MOCK_PATIENTS);
+    const [patients, setPatients] = useState<DoctorPatient[]>([]);
+
+   useEffect(() => {
+      const loadPatients = async () => {
+         try {
+            const response = await DoctorService.getPatients();
+            setPatients(response);
+         } catch (error) {
+            console.error("Failed to load doctor patients:", error);
+         }
+      };
+
+      loadPatients();
+   }, []);
 
    const filteredPatients = useMemo(() => {
       if (!searchQuery.trim()) return patients;
@@ -59,7 +39,7 @@ export default function DoctorPatients() {
       return new Date(iso).toLocaleDateString();
    };
 
-   const renderPatient = ({ item }: { item: Patient }) => (
+   const renderPatient = ({ item }: { item: DoctorPatient }) => (
       <View style={styles.patientCard}>
          <View style={styles.cardHeader}>
             <View style={styles.avatar}>

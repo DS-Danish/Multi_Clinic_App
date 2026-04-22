@@ -13,7 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Guard } from "../../../../components/Guard";
 import { Button } from "../../../../components/ui/Button";
 import { Input } from "../../../../components/ui/Input";
-import { BillingAPI } from "../../../../services/mock/billing";
+import { BillingAPI } from "../../../../services/billing";
 
 export default function CreateBillScreen() {
    const router = useRouter();

@@ -10,7 +10,7 @@ import {
    ClinicAdminAPI,
    Doctor,
    Patient,
-} from "../../../../services/mock/clinicAdmin";
+} from "../../../../services/clinicAdmin";
 
 // Helper to format date for datetime-local input
 const formatDateTimeLocal = (date: Date) => {
@@ -79,8 +79,11 @@ export default function AddAppointment() {
          await ClinicAdminAPI.addAppointment(clinicId, formData);
          Alert.alert("Success", "Appointment created successfully");
          router.back();
-      } catch (error) {
-         Alert.alert("Error", "Failed to create appointment");
+      } catch (error: any) {
+         Alert.alert(
+            "Unavailable",
+            error.message || "Failed to create appointment",
+         );
       } finally {
          setSubmitting(false);
       }

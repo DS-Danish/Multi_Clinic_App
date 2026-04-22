@@ -13,7 +13,7 @@ import {
    View,
 } from "react-native";
 import { Guard } from "../../../components/Guard";
-import { Clinic, SuperAdminAPI } from "../../../services/mock/superAdmin";
+import { Clinic, SuperAdminAPI } from "../../../services/superAdmin";
 
 export default function SuperAdminDashboard() {
    const [loading, setLoading] = useState(true);

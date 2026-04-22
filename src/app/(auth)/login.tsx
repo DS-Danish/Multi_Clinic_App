@@ -253,9 +253,11 @@ export default function LoginScreen() {
                      {/* Login Button */}
                      <Button
                         onPress={handleLogin}
-                        title="Sign In"
+                        title={authLoading ? "Signing In..." : "Sign In"}
                         style={styles.loginButton}
                         textStyle={styles.loginButtonText}
+                        disabled={authLoading}
+                        loading={authLoading}
                      />
 
                      {/* Divider */}

@@ -62,8 +62,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
          throw new Error("Invalid role for registration");
       }
       try {
-         const newUser = await authService.register(data);
-         setUser(newUser);
+         await authService.register(data);
       } catch (error: any) {
          throw new Error(error.message || "Registration failed");
       }

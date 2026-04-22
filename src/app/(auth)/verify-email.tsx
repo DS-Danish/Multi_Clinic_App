@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "../../components/ui/Button";
+import { authService } from "../../services/auth";
 
 export default function VerifyEmailScreen() {
    const { token } = useLocalSearchParams<{ token?: string }>();
@@ -19,18 +20,38 @@ export default function VerifyEmailScreen() {
          return;
       }
 
-      // Simulate API call
-      const timer = setTimeout(() => {
-         // Always succeed for demo
-         setStatus("success");
-         setMessage("Email verified successfully! You can now log in.");
-         // Redirect to login after 3 seconds
-         setTimeout(() => {
-            router.replace("/login");
-         }, 3000);
-      }, 1500);
+      let isMounted = true;
 
-      return () => clearTimeout(timer);
+      const verify = async () => {
+         try {
+            const response = await authService.verifyEmail(token);
+            if (!isMounted) return;
+
+            setStatus("success");
+            setMessage(
+               response.message ||
+                  "Email verified successfully! You can now log in.",
+            );
+
+            setTimeout(() => {
+               router.replace("/login");
+            }, 3000);
+         } catch (error: any) {
+            if (!isMounted) return;
+
+            setStatus("error");
+            setMessage(
+               error.message ||
+                  "Verification failed. Please request a new verification email.",
+            );
+         }
+      };
+
+      verify();
+
+      return () => {
+         isMounted = false;
+      };
    }, [token]);
 
    return (

@@ -14,7 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Guard } from "../../../../components/Guard";
 import { Button } from "../../../../components/ui/Button";
 import { Input } from "../../../../components/ui/Input";
-import { Bill, BillingAPI } from "../../../../services/mock/billing";
+import { Bill, BillingAPI } from "../../../../services/billing";
 
 export default function BillDetailScreen() {
    const router = useRouter();

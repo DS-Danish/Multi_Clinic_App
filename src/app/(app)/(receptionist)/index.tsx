@@ -19,6 +19,7 @@ import { Guard } from "../../../components/Guard";
 import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
 import { useAuth } from "../../../context/AuthContext";
+import { ReceptionistAPI } from "../../../services/receptionist";
 import { AppointmentStatus } from "../../../types/appointment.types";
 
 // Types
@@ -55,96 +56,8 @@ interface Appointment {
    startTime: string;
    endTime?: string;
    status?: AppointmentStatus;
+   notes?: string;
 }
-
-// Mock data
-const MOCK_CLINICS: Clinic[] = [
-   { id: "c1", name: "Downtown Health" },
-   { id: "c2", name: "Westside Clinic" },
-];
-
-const MOCK_DOCTORS: Doctor[] = [
-   { id: "d1", name: "Dr. Smith" },
-   { id: "d2", name: "Dr. Johnson" },
-   { id: "d3", name: "Dr. Williams" },
-   { id: "d4", name: "Dr. Brown" },
-];
-
-const MOCK_PATIENTS: Patient[] = [
-   {
-      id: "p1",
-      name: "John Smith",
-      email: "john@email.com",
-      age: 45,
-      gender: "Male",
-   },
-   {
-      id: "p2",
-      name: "Emily Johnson",
-      email: "emily@email.com",
-      age: 32,
-      gender: "Female",
-   },
-   {
-      id: "p3",
-      name: "Michael Brown",
-      email: "michael@email.com",
-      age: 28,
-      gender: "Male",
-   },
-   {
-      id: "p4",
-      name: "Sarah Davis",
-      email: "sarah@email.com",
-      age: 51,
-      gender: "Female",
-   },
-   {
-      id: "p5",
-      name: "Robert Wilson",
-      email: "robert@email.com",
-      age: 39,
-      gender: "Male",
-   },
-];
-
-const MOCK_APPOINTMENTS: Appointment[] = [
-   {
-      id: "a1",
-      patientName: "John Smith",
-      patientId: "p1",
-      doctorId: "d1",
-      startTime: "2025-03-25T09:00:00",
-      endTime: "2025-03-25T09:30:00",
-      status: AppointmentStatus.PENDING,
-   },
-   {
-      id: "a2",
-      patientName: "Emily Johnson",
-      patientId: "p2",
-      doctorId: "d2",
-      startTime: "2025-03-25T10:00:00",
-      endTime: "2025-03-25T10:30:00",
-      status: AppointmentStatus.PENDING,
-   },
-   {
-      id: "a3",
-      patientName: "Michael Brown",
-      patientId: "p3",
-      doctorId: "d1",
-      startTime: "2025-03-25T11:00:00",
-      endTime: "2025-03-25T11:30:00",
-      status: AppointmentStatus.PENDING,
-   },
-];
-
-const MOCK_AVAILABILITY: Availability[] = [
-   { dayOfWeek: 1, startTime: "09:00", endTime: "17:00" },
-   { dayOfWeek: 2, startTime: "09:00", endTime: "17:00" },
-   { dayOfWeek: 3, startTime: "09:00", endTime: "17:00" },
-   { dayOfWeek: 4, startTime: "09:00", endTime: "17:00" },
-   { dayOfWeek: 5, startTime: "09:00", endTime: "17:00" },
-];
 
 // Helper functions
 const formatDateTimeLocal = (date: Date) => {
@@ -171,11 +84,10 @@ export default function ReceptionistDashboard() {
 
    // State for data
    const [myClinic, setMyClinic] = useState<Clinic | null>(null);
-   const [clinics] = useState<Clinic[]>(MOCK_CLINICS);
+   const [clinics, setClinics] = useState<Clinic[]>([]);
    const [doctors, setDoctors] = useState<Doctor[]>([]);
-   const [patients] = useState<Patient[]>(MOCK_PATIENTS);
-   const [appointments, setAppointments] =
-      useState<Appointment[]>(MOCK_APPOINTMENTS);
+   const [patients, setPatients] = useState<Patient[]>([]);
+   const [appointments, setAppointments] = useState<Appointment[]>([]);
    const [availability, setAvailability] = useState<Availability[]>([]);
 
    // Form state for new appointment
@@ -209,11 +121,40 @@ export default function ReceptionistDashboard() {
    const [editOpen, setEditOpen] = useState(false);
    const [editData, setEditData] = useState<any>(null);
 
-   // Simulate loading my clinic
    useEffect(() => {
-      // Mock: assume the receptionist works at the first clinic
-      setMyClinic(clinics[0]);
-      setForm((prev) => ({ ...prev, clinicId: clinics[0].id }));
+      const loadDashboardData = async () => {
+         try {
+            const [myClinicRes, clinicsRes, patientsRes, appointmentsRes] =
+               await Promise.all([
+                  ReceptionistAPI.getMyClinic(),
+                  ReceptionistAPI.listClinics(),
+                  ReceptionistAPI.listPatients(),
+                  ReceptionistAPI.listPendingAppointments(),
+               ]);
+
+            setMyClinic(myClinicRes.data);
+            setClinics(clinicsRes.data);
+            setPatients(patientsRes.data);
+            setAppointments(
+               appointmentsRes.data.map((appointment) => ({
+                  ...appointment,
+                  status: appointment.status as AppointmentStatus,
+               })),
+            );
+            setForm((prev) => ({
+               ...prev,
+               clinicId: myClinicRes.data.id,
+            }));
+         } catch (error) {
+            console.error("Failed to load receptionist dashboard:", error);
+            Alert.alert(
+               "Error",
+               "Failed to load receptionist dashboard data.",
+            );
+         }
+      };
+
+      loadDashboardData();
    }, []);
 
    // Load doctors when clinic changes
@@ -222,8 +163,20 @@ export default function ReceptionistDashboard() {
          setDoctors([]);
          return;
       }
-      // Mock: all doctors are available at any clinic
-      setDoctors(MOCK_DOCTORS);
+
+      const loadDoctors = async () => {
+         try {
+            const response = await ReceptionistAPI.listClinicDoctors(
+               form.clinicId,
+            );
+            setDoctors(response.data);
+         } catch (error) {
+            console.error("Failed to load clinic doctors:", error);
+            setDoctors([]);
+         }
+      };
+
+      loadDoctors();
    }, [form.clinicId]);
 
    // Load availability when doctor changes
@@ -232,49 +185,84 @@ export default function ReceptionistDashboard() {
          setAvailability([]);
          return;
       }
-      // Mock availability
-      setAvailability(MOCK_AVAILABILITY);
+
+      const loadAvailability = async () => {
+         try {
+            const response = await ReceptionistAPI.getDoctorAvailability(
+               form.doctorId,
+            );
+            setAvailability(response.data);
+         } catch (error) {
+            console.error("Failed to load doctor availability:", error);
+            setAvailability([]);
+         }
+      };
+
+      loadAvailability();
    }, [form.doctorId]);
 
    // Create appointment
-   const handleCreateAppointment = () => {
+   const handleCreateAppointment = async () => {
       if (!form.clinicId || !form.doctorId || !form.patientId) {
          Alert.alert("Error", "Please select clinic, doctor, and patient");
          return;
       }
-      const patient = patients.find((p) => p.id === form.patientId);
-      if (!patient) return;
 
-      const newAppointment: Appointment = {
-         id: `a${Date.now()}`,
-         patientName: patient.name,
-         patientId: patient.id,
-         doctorId: form.doctorId,
-         startTime: parseDateTimeLocal(form.startTime).toISOString(),
-         endTime: parseDateTimeLocal(form.endTime).toISOString(),
-         status: AppointmentStatus.SCHEDULED,
-      };
-      setAppointments((prev) => [...prev, newAppointment]);
-      Alert.alert("Success", "Appointment created successfully");
-      // Reset form
-      setForm({
-         clinicId: myClinic?.id || "",
-         doctorId: "",
-         patientId: "",
-         startTime: formatDateTimeLocal(new Date()),
-         endTime: formatDateTimeLocal(new Date(Date.now() + 3600000)),
-         notes: "",
-      });
+      try {
+         const response = await ReceptionistAPI.createAppointment({
+            clinicId: form.clinicId,
+            doctorId: form.doctorId,
+            patientId: form.patientId,
+            startTime: parseDateTimeLocal(form.startTime).toISOString(),
+            endTime: parseDateTimeLocal(form.endTime).toISOString(),
+            notes: form.notes,
+         });
+
+         setAppointments((prev) => [
+            ...prev,
+            {
+               ...response.data,
+               status: response.data.status as AppointmentStatus,
+            },
+         ]);
+         Alert.alert("Success", "Appointment created successfully");
+         setForm({
+            clinicId: myClinic?.id || "",
+            doctorId: "",
+            patientId: "",
+            startTime: formatDateTimeLocal(new Date()),
+            endTime: formatDateTimeLocal(new Date(Date.now() + 3600000)),
+            notes: "",
+         });
+      } catch (error: any) {
+         Alert.alert(
+            "Error",
+            error.message || "Failed to create appointment",
+         );
+      }
    };
 
    // Accept appointment
-   const handleAccept = (id: string) => {
-      setAppointments((prev) =>
-         prev.map((a) =>
-            a.id === id ? { ...a, status: AppointmentStatus.SCHEDULED } : a,
-         ),
-      );
-      Alert.alert("Success", "Appointment confirmed");
+   const handleAccept = async (id: string) => {
+      try {
+         const response = await ReceptionistAPI.acceptAppointment(id);
+         setAppointments((prev) =>
+            prev.map((appointment) =>
+               appointment.id === id
+                  ? {
+                       ...response.data,
+                       status: response.data.status as AppointmentStatus,
+                    }
+                  : appointment,
+            ),
+         );
+         Alert.alert("Success", "Appointment confirmed");
+      } catch (error: any) {
+         Alert.alert(
+            "Error",
+            error.message || "Failed to confirm appointment",
+         );
+      }
    };
 
    // Cancel appointment
@@ -283,17 +271,31 @@ export default function ReceptionistDashboard() {
       setConfirmOpen(true);
    };
 
-   const confirmCancel = () => {
+   const confirmCancel = async () => {
       if (!selectedAppointmentId) return;
-      setAppointments((prev) =>
-         prev.map((a) =>
-            a.id === selectedAppointmentId
-               ? { ...a, status: AppointmentStatus.CANCELLED }
-               : a,
-         ),
-      );
-      setConfirmOpen(false);
-      setSelectedAppointmentId(null);
+
+      try {
+         const response = await ReceptionistAPI.cancelAppointment(
+            selectedAppointmentId,
+         );
+         setAppointments((prev) =>
+            prev.map((appointment) =>
+               appointment.id === selectedAppointmentId
+                  ? {
+                       ...response.data,
+                       status: response.data.status as AppointmentStatus,
+                    }
+                  : appointment,
+            ),
+         );
+         setConfirmOpen(false);
+         setSelectedAppointmentId(null);
+      } catch (error: any) {
+         Alert.alert(
+            "Error",
+            error.message || "Failed to cancel appointment",
+         );
+      }
    };
 
    // Edit appointment
@@ -302,31 +304,40 @@ export default function ReceptionistDashboard() {
       setEditOpen(true);
    };
 
-   const saveEdit = (data: any) => {
-      setAppointments((prev) =>
-         prev.map((a) =>
-            a.id === data.id
-               ? {
-                    ...a,
-                    startTime: data.startTime,
-                    endTime: data.endTime,
-                    notes: data.notes,
-                 }
-               : a,
-         ),
-      );
-      setEditOpen(false);
-      setEditData(null);
+   const saveEdit = async (data: any) => {
+      try {
+         const response = await ReceptionistAPI.updateAppointment(data.id, {
+            startTime: data.startTime,
+            endTime: data.endTime,
+            notes: data.notes,
+         });
+         setAppointments((prev) =>
+            prev.map((appointment) =>
+               appointment.id === data.id
+                  ? {
+                       ...response.data,
+                       status: response.data.status as AppointmentStatus,
+                    }
+                  : appointment,
+            ),
+         );
+         setEditOpen(false);
+         setEditData(null);
+      } catch (error: any) {
+         Alert.alert(
+            "Error",
+            error.message || "Failed to update appointment",
+         );
+      }
    };
 
    // Navigate to billing (placeholder)
    const handleBill = (appointment: Appointment) => {
-      const patient = patients.find((p) => p.name === appointment.patientName);
       router.push({
          pathname: "/(app)/(receptionist)/billing/create",
          params: {
             appointmentId: appointment.id,
-            patientId: patient?.id || "",
+            patientId: appointment.patientId || "",
             patientName: appointment.patientName,
          },
       });

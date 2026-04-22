@@ -1,6 +1,8 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
+   ActivityIndicator,
+   Alert,
    FlatList,
    Modal,
    StyleSheet,
@@ -13,65 +15,36 @@ import { Guard } from "../../../components/Guard";
 import { ReportModal } from "../../../components/ReportModal";
 import { Button } from "../../../components/ui/Button";
 import { useAuth } from "../../../context/AuthContext";
-
-// Types (mirror web)
-interface AppointmentReport {
-   id: string;
-   appointmentId: string;
-   title: string;
-   content: string;
-   diagnosis?: string;
-   prescription?: string;
-   recommendations?: string;
-   fileUrl?: string;
-   createdAt: string;
-   updatedAt: string;
-}
-
-// Mock data
-const MOCK_REPORTS: AppointmentReport[] = [
-   {
-      id: "1",
-      appointmentId: "a1",
-      title: "Initial Consultation",
-      content:
-         "Patient presented with mild fever and cough. Advised rest and hydration.",
-      diagnosis: "Common cold",
-      prescription: "Paracetamol 500mg twice daily for 3 days",
-      recommendations: "Plenty of fluids, rest, monitor temperature",
-      createdAt: "2025-02-10T14:30:00Z",
-      updatedAt: "2025-02-10T14:30:00Z",
-   },
-   {
-      id: "2",
-      appointmentId: "a2",
-      title: "Follow-up Visit",
-      content: "Symptoms improved. Continuing medication for another week.",
-      diagnosis: "Hypertension",
-      prescription: "Lisinopril 10mg daily",
-      recommendations: "Low sodium diet, exercise regularly",
-      createdAt: "2025-03-05T09:15:00Z",
-      updatedAt: "2025-03-05T09:15:00Z",
-   },
-   {
-      id: "3",
-      appointmentId: "a3",
-      title: "Annual Checkup",
-      content: "All vitals normal. Blood work pending.",
-      createdAt: "2025-03-12T11:00:00Z",
-      updatedAt: "2025-03-12T11:00:00Z",
-   },
-];
+import { AppointmentReport, ReportService } from "../../../services/report";
 
 export default function DoctorReports() {
    const { user } = useAuth();
-   const [reports, setReports] = useState<AppointmentReport[]>(MOCK_REPORTS);
+   const [reports, setReports] = useState<AppointmentReport[]>([]);
+   const [loading, setLoading] = useState(true);
    const [selectedReport, setSelectedReport] =
       useState<AppointmentReport | null>(null);
    const [viewModalVisible, setViewModalVisible] = useState(false);
    const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
    const [reportToDelete, setReportToDelete] =
       useState<AppointmentReport | null>(null);
+
+   useEffect(() => {
+      if (!user?.id) return;
+
+      const loadReports = async () => {
+         try {
+            setLoading(true);
+            const response = await ReportService.getDoctorReports(user.id);
+            setReports(response);
+         } catch (error) {
+            console.error("Failed to load doctor reports:", error);
+         } finally {
+            setLoading(false);
+         }
+      };
+
+      loadReports();
+   }, [user?.id]);
 
    const handleViewReport = (report: AppointmentReport) => {
       setSelectedReport(report);
@@ -83,17 +56,20 @@ export default function DoctorReports() {
       setDeleteConfirmVisible(true);
    };
 
-   const confirmDelete = () => {
+   const confirmDelete = async () => {
       if (!reportToDelete) return;
-      // Mock delete – remove from local state
-      setReports((prev) => prev.filter((r) => r.id !== reportToDelete.id));
-      setDeleteConfirmVisible(false);
-      setReportToDelete(null);
+
+      try {
+         await ReportService.deleteReport(reportToDelete.appointmentId);
+         setReports((prev) => prev.filter((r) => r.id !== reportToDelete.id));
+         setDeleteConfirmVisible(false);
+         setReportToDelete(null);
+      } catch (error: any) {
+         Alert.alert("Error", error.message || "Failed to delete report");
+      }
    };
 
-   const formatDate = (iso: string) => {
-      return new Date(iso).toLocaleDateString();
-   };
+   const formatDate = (iso: string) => new Date(iso).toLocaleDateString();
 
    const renderReport = ({ item }: { item: AppointmentReport }) => (
       <View style={styles.row}>
@@ -127,11 +103,7 @@ export default function DoctorReports() {
                style={styles.actionButton}
                onPress={() => handleDeleteReport(item)}
             >
-               <MaterialCommunityIcons
-                  name="delete"
-                  size={20}
-                  color="#ef4444"
-               />
+               <MaterialCommunityIcons name="delete" size={20} color="#ef4444" />
             </TouchableOpacity>
          </View>
       </View>
@@ -146,38 +118,42 @@ export default function DoctorReports() {
                   Review all reports generated for your appointments.
                </Text>
 
-               {/* Table Header */}
-               <View style={styles.headerRow}>
-                  <Text style={[styles.headerCell, { flex: 2 }]}>Title</Text>
-                  <Text style={[styles.headerCell, { flex: 1 }]}>Created</Text>
-                  <Text style={[styles.headerCell, { flex: 1 }]}>Updated</Text>
-                  <Text style={[styles.headerCell, { flex: 1 }]}>Actions</Text>
-               </View>
-
-               <FlatList
-                  data={reports}
-                  renderItem={renderReport}
-                  keyExtractor={(item) => item.id}
-                  ListEmptyComponent={
-                     <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyText}>No reports found.</Text>
+               {loading ? (
+                  <View style={styles.emptyContainer}>
+                     <ActivityIndicator size="large" color="#2563eb" />
+                  </View>
+               ) : (
+                  <>
+                     <View style={styles.headerRow}>
+                        <Text style={[styles.headerCell, { flex: 2 }]}>Title</Text>
+                        <Text style={[styles.headerCell, { flex: 1 }]}>Created</Text>
+                        <Text style={[styles.headerCell, { flex: 1 }]}>Updated</Text>
+                        <Text style={[styles.headerCell, { flex: 1 }]}>Actions</Text>
                      </View>
-                  }
-                  contentContainerStyle={styles.listContent}
-               />
+                     <FlatList
+                        data={reports}
+                        renderItem={renderReport}
+                        keyExtractor={(item) => item.id}
+                        ListEmptyComponent={
+                           <View style={styles.emptyContainer}>
+                              <Text style={styles.emptyText}>No reports found.</Text>
+                           </View>
+                        }
+                        contentContainerStyle={styles.listContent}
+                     />
+                  </>
+               )}
 
-               {/* View Report Modal */}
                {selectedReport && (
                   <ReportModal
                      visible={viewModalVisible}
                      onClose={() => setViewModalVisible(false)}
                      mode="view"
                      initialData={selectedReport}
-                     onSave={async () => {}} // not used in view mode
+                     onSave={async () => {}}
                   />
                )}
 
-               {/* Delete Confirmation Modal */}
                <Modal
                   visible={deleteConfirmVisible}
                   transparent
@@ -194,9 +170,7 @@ export default function DoctorReports() {
                                  color="#ef4444"
                               />
                            </View>
-                           <Text style={styles.deleteTitle}>
-                              Delete Report?
-                           </Text>
+                           <Text style={styles.deleteTitle}>Delete Report?</Text>
                         </View>
                         <Text style={styles.deleteMessage}>
                            Are you sure you want to delete the following report?

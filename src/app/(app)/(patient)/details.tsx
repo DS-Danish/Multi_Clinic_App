@@ -19,6 +19,8 @@ import { ReportModal } from "../../../components/ReportModal";
 import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
 import { useAuth } from "../../../context/AuthContext";
+import { PatientService } from "../../../services/patient";
+import { ReportService } from "../../../services/report";
 import { AppointmentStatus } from "../../../types/appointment.types";
 
 // Mock data types
@@ -68,75 +70,6 @@ interface PatientReport {
    report: Report;
 }
 
-// Mock data
-const MOCK_CLINICS: Clinic[] = [
-   { id: "c1", name: "Downtown Health" },
-   { id: "c2", name: "Westside Clinic" },
-];
-
-const MOCK_DOCTORS: Record<string, Doctor[]> = {
-   c1: [
-      { id: "d1", name: "Dr. Smith" },
-      { id: "d2", name: "Dr. Johnson" },
-   ],
-   c2: [
-      { id: "d3", name: "Dr. Williams" },
-      { id: "d4", name: "Dr. Brown" },
-   ],
-};
-
-const MOCK_APPOINTMENTS: Appointment[] = [
-   {
-      id: "a1",
-      clinicName: "Downtown Health",
-      doctorName: "Dr. Smith",
-      startTime: "2025-03-20T10:00:00Z",
-      endTime: "2025-03-20T10:30:00Z",
-      status: AppointmentStatus.SCHEDULED,
-      notes: "Regular checkup",
-   },
-   {
-      id: "a2",
-      clinicName: "Westside Clinic",
-      doctorName: "Dr. Williams",
-      startTime: "2025-03-22T14:00:00Z",
-      endTime: "2025-03-22T14:30:00Z",
-      status: AppointmentStatus.PENDING,
-   },
-];
-
-const MOCK_NOTIFICATIONS: Notification[] = [
-   {
-      id: "n1",
-      message:
-         "Your appointment with Dr. Smith is confirmed for March 20 at 10:00 AM",
-      sentAt: "2025-03-15T09:00:00Z",
-   },
-   {
-      id: "n2",
-      message: "Reminder: Appointment tomorrow at 2:00 PM",
-      sentAt: "2025-03-21T08:00:00Z",
-   },
-];
-
-const MOCK_REPORTS: PatientReport[] = [
-   {
-      appointmentId: "a1",
-      appointmentDate: "2025-03-20T10:00:00Z",
-      doctor: { id: "d1", name: "Dr. Smith" },
-      clinic: { id: "c1", name: "Downtown Health" },
-      report: {
-         id: "r1",
-         title: "Annual Physical",
-         content: "Patient is in good health. Blood pressure normal.",
-         diagnosis: "Healthy",
-         recommendations: "Continue regular exercise",
-         createdAt: "2025-03-20T11:00:00Z",
-         updatedAt: "2025-03-20T11:00:00Z",
-      },
-   },
-];
-
 // Helper functions for datetime conversion
 const formatDateTimeLocal = (date: Date) => {
    const year = date.getFullYear();
@@ -163,12 +96,11 @@ export default function PatientDetails() {
    };
 
    // Data states
-   const [clinics] = useState<Clinic[]>(MOCK_CLINICS);
+   const [clinics, setClinics] = useState<Clinic[]>([]);
    const [doctors, setDoctors] = useState<Doctor[]>([]);
-   const [appointments, setAppointments] =
-      useState<Appointment[]>(MOCK_APPOINTMENTS);
-   const [notifications] = useState<Notification[]>(MOCK_NOTIFICATIONS);
-   const [reports] = useState<PatientReport[]>(MOCK_REPORTS);
+   const [appointments, setAppointments] = useState<Appointment[]>([]);
+   const [notifications, setNotifications] = useState<Notification[]>([]);
+   const [reports, setReports] = useState<PatientReport[]>([]);
 
    // Form states for booking
    const [selectedClinic, setSelectedClinic] = useState("");
@@ -194,16 +126,56 @@ export default function PatientDetails() {
    );
    const [showCancelled, setShowCancelled] = useState(false);
 
-   useEffect(() => {
-      // Simulate loading
-      setTimeout(() => setLoading(false), 1000);
-   }, []);
+   const refreshPatientData = async () => {
+      if (!user?.id) return;
 
-   const loadDoctors = (clinicId: string) => {
-      setDoctors(MOCK_DOCTORS[clinicId] || []);
+      try {
+         setLoading(true);
+         const [clinicsRes, appointmentsRes, notificationsRes, reportsRes] =
+            await Promise.all([
+               PatientService.getClinics(),
+               PatientService.getAppointments(user.id),
+               PatientService.getNotifications(user.id),
+               ReportService.getPatientReports(user.id),
+            ]);
+
+         setClinics(clinicsRes);
+         setAppointments(
+            appointmentsRes.map((appointment) => ({
+               ...appointment,
+               status: appointment.status as AppointmentStatus,
+            })),
+         );
+         setNotifications(notificationsRes);
+         setReports(reportsRes);
+      } catch (error) {
+         console.error("Failed to load patient data:", error);
+         Alert.alert("Error", "Failed to load patient data.");
+      } finally {
+         setLoading(false);
+      }
    };
 
-   const handleCreateAppointment = () => {
+   useEffect(() => {
+      refreshPatientData();
+   }, [user?.id]);
+
+   const loadDoctors = async (clinicId: string) => {
+      if (!clinicId) {
+         setDoctors([]);
+         return;
+      }
+
+      try {
+         const response = await PatientService.getDoctorsForClinic(clinicId);
+         setDoctors(response);
+      } catch (error) {
+         console.error("Failed to load clinic doctors:", error);
+         setDoctors([]);
+      }
+   };
+
+   const handleCreateAppointment = async () => {
       if (!selectedClinic || !selectedDoctor) {
          Alert.alert("Error", "Please select clinic and doctor");
          return;
@@ -215,54 +187,63 @@ export default function PatientDetails() {
          Alert.alert("Error", "Please enter valid dates and times");
          return;
       }
-      // Mock creation
-      const newAppointment: Appointment = {
-         id: `a${Date.now()}`,
-         clinicName: clinics.find((c) => c.id === selectedClinic)?.name || "",
-         doctorName: doctors.find((d) => d.id === selectedDoctor)?.name || "",
-         startTime: startDate.toISOString(),
-         endTime: endDate.toISOString(),
-         status: AppointmentStatus.PENDING,
-      };
-      setAppointments([...appointments, newAppointment]);
-      Alert.alert("Success", "Appointment request sent!");
-      // Reset form
-      setSelectedClinic("");
-      setSelectedDoctor("");
-      setDoctors([]);
-      setStartTimeStr(formatDateTimeLocal(new Date()));
-      setEndTimeStr(formatDateTimeLocal(new Date(Date.now() + 3600000)));
+
+      try {
+         await PatientService.createAppointment({
+            clinicId: selectedClinic,
+            doctorId: selectedDoctor,
+            startTime: startDate.toISOString(),
+            endTime: endDate.toISOString(),
+         });
+         Alert.alert("Success", "Appointment request sent!");
+         setSelectedClinic("");
+         setSelectedDoctor("");
+         setDoctors([]);
+         setStartTimeStr(formatDateTimeLocal(new Date()));
+         setEndTimeStr(formatDateTimeLocal(new Date(Date.now() + 3600000)));
+         await refreshPatientData();
+      } catch (error: any) {
+         Alert.alert(
+            "Error",
+            error.message || "Failed to create appointment",
+         );
+      }
    };
 
-   const handleCancelAppointment = () => {
+   const handleCancelAppointment = async () => {
       if (!appointmentToCancel) return;
-      setAppointments((prev) =>
-         prev.map((a) =>
-            a.id === appointmentToCancel
-               ? { ...a, status: AppointmentStatus.CANCELLED }
-               : a,
-         ),
-      );
-      setCancelDialogOpen(false);
-      setAppointmentToCancel(null);
+
+      try {
+         await PatientService.cancelAppointment(appointmentToCancel);
+         setCancelDialogOpen(false);
+         setAppointmentToCancel(null);
+         await refreshPatientData();
+      } catch (error: any) {
+         Alert.alert(
+            "Error",
+            error.message || "Failed to cancel appointment",
+         );
+      }
    };
 
-   const handleEditAppointment = (data: any) => {
+   const handleEditAppointment = async (data: any) => {
       if (!data.id) return;
-      setAppointments((prev) =>
-         prev.map((a) =>
-            a.id === data.id
-               ? {
-                    ...a,
-                    startTime: data.startTime,
-                    endTime: data.endTime,
-                    notes: data.notes,
-                 }
-               : a,
-         ),
-      );
-      setEditDialogOpen(false);
-      setAppointmentToEdit(null);
+
+      try {
+         await PatientService.updateAppointment(data.id, {
+            startTime: data.startTime,
+            endTime: data.endTime,
+            notes: data.notes,
+         });
+         setEditDialogOpen(false);
+         setAppointmentToEdit(null);
+         await refreshPatientData();
+      } catch (error: any) {
+         Alert.alert(
+            "Error",
+            error.message || "Failed to update appointment",
+         );
+      }
    };
 
    const openCancelDialog = (appointmentId: string) => {
@@ -502,7 +483,9 @@ export default function PatientDetails() {
                                  color="#9ca3af"
                               />
                               <Text style={styles.infoLabel}>Phone:</Text>
-                              <Text style={styles.infoValue}>Not provided</Text>
+                              <Text style={styles.infoValue}>
+                                 {user?.phone || "Not provided"}
+                              </Text>
                            </View>
                         </View>
 
@@ -542,7 +525,11 @@ export default function PatientDetails() {
                               <Text style={styles.infoLabel}>
                                  Member Since:
                               </Text>
-                              <Text style={styles.infoValue}>March 2025</Text>
+                              <Text style={styles.infoValue}>
+                                 {user?.createdAt
+                                    ? new Date(user.createdAt).toLocaleDateString()
+                                    : "Unknown"}
+                              </Text>
                            </View>
                         </View>
                      </View>

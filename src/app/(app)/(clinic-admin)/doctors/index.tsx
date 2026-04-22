@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Guard } from "../../../../components/Guard";
 import { Button } from "../../../../components/ui/Button";
-import { ClinicAdminAPI, Doctor } from "../../../../services/mock/clinicAdmin";
+import { ClinicAdminAPI, Doctor } from "../../../../services/clinicAdmin";
 
 export default function DoctorsList() {
    const [loading, setLoading] = useState(true);
@@ -43,9 +43,11 @@ export default function DoctorsList() {
             <Text style={styles.doctorName}>{item.name}</Text>
             <Text style={styles.doctorEmail}>{item.email}</Text>
             {item.phone && <Text style={styles.doctorPhone}>{item.phone}</Text>}
-            {item.specialty && (
+            {item.specialties && item.specialties.length > 0 && (
                <View style={styles.specialtyBadge}>
-                  <Text style={styles.specialtyText}>{item.specialty}</Text>
+                  <Text style={styles.specialtyText}>
+                     {item.specialties.map((specialty) => specialty.name).join(", ")}
+                  </Text>
                </View>
             )}
          </View>

@@ -1,6 +1,8 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
+   ActivityIndicator,
+   Alert,
    FlatList,
    Modal,
    StyleSheet,
@@ -14,19 +16,8 @@ import { Guard } from "../../../components/Guard";
 import { ReportModal } from "../../../components/ReportModal";
 import { Button } from "../../../components/ui/Button";
 import { useAuth } from "../../../context/AuthContext";
-
-// Types (mirror web, but without backend logic)
-type AppointmentReport = {
-   id: string;
-   title: string;
-   content: string;
-   diagnosis?: string;
-   prescription?: string;
-   recommendations?: string;
-   fileUrl?: string;
-   createdAt: string;
-   updatedAt: string;
-};
+import { DoctorAppointment, DoctorService } from "../../../services/doctor";
+import { AppointmentReport, ReportService } from "../../../services/report";
 
 type Appointment = {
    id: string;
@@ -34,43 +25,23 @@ type Appointment = {
    clinicName: string;
    startTime: string;
    endTime: string;
-   report?: AppointmentReport;
+   report?: AppointmentReport | null;
 };
 
-// Mock data for frontend demonstration
-const MOCK_APPOINTMENTS: Appointment[] = [
-   {
-      id: "1",
-      patientName: "John Smith",
-      clinicName: "Downtown Health",
-      startTime: "2025-03-15T09:00:00",
-      endTime: "2025-03-15T09:30:00",
-   },
-   {
-      id: "2",
-      patientName: "Emily Johnson",
-      clinicName: "Westside Clinic",
-      startTime: "2025-03-15T10:00:00",
-      endTime: "2025-03-15T10:30:00",
-      report: {
-         id: "r1",
-         title: "Follow-up Visit",
-         content: "Patient is recovering well.",
-         diagnosis: "Mild hypertension",
-         prescription: "Lisinopril 10mg",
-         recommendations: "Reduce salt intake",
-         createdAt: "2025-03-15T10:35:00",
-         updatedAt: "2025-03-15T10:35:00",
-      },
-   },
-   // add more as needed
-];
+const normalizeAppointment = (appointment: DoctorAppointment): Appointment => ({
+   id: appointment.id,
+   patientName: appointment.patientName,
+   clinicName: appointment.clinicName,
+   startTime: appointment.startTime,
+   endTime: appointment.endTime,
+   report: appointment.report || null,
+});
 
 export default function DoctorAppointments() {
    const { user } = useAuth();
    const [searchQuery, setSearchQuery] = useState("");
-   const [appointments, setAppointments] =
-      useState<Appointment[]>(MOCK_APPOINTMENTS);
+   const [appointments, setAppointments] = useState<Appointment[]>([]);
+   const [loading, setLoading] = useState(true);
    const [selectedAppointment, setSelectedAppointment] =
       useState<Appointment | null>(null);
    const [modalVisible, setModalVisible] = useState(false);
@@ -80,18 +51,34 @@ export default function DoctorAppointments() {
    const [viewReport, setViewReport] = useState<AppointmentReport | null>(null);
    const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
 
-   // Filter appointments based on search
+   useEffect(() => {
+      if (!user?.id) return;
+
+      const loadAppointments = async () => {
+         try {
+            setLoading(true);
+            const response = await DoctorService.getAppointments(user.id);
+            setAppointments(response.map(normalizeAppointment));
+         } catch (error) {
+            console.error("Failed to load doctor appointments:", error);
+         } finally {
+            setLoading(false);
+         }
+      };
+
+      loadAppointments();
+   }, [user?.id]);
+
    const filteredAppointments = useMemo(() => {
       if (!searchQuery.trim()) return appointments;
-      const q = searchQuery.toLowerCase();
+      const query = searchQuery.toLowerCase();
       return appointments.filter(
-         (a) =>
-            a.patientName.toLowerCase().includes(q) ||
-            a.clinicName.toLowerCase().includes(q),
+         (appointment) =>
+            appointment.patientName.toLowerCase().includes(query) ||
+            appointment.clinicName.toLowerCase().includes(query),
       );
    }, [appointments, searchQuery]);
 
-   // Handlers for report actions (mock)
    const handleCreateReport = (appointment: Appointment) => {
       setSelectedAppointment(appointment);
       setViewReport(null);
@@ -120,45 +107,56 @@ export default function DoctorAppointments() {
       setDeleteConfirmVisible(true);
    };
 
-   const confirmDelete = () => {
+   const confirmDelete = async () => {
       if (!selectedAppointment) return;
-      // Mock delete – just remove the report from the local state
-      const updated = appointments.map((a) =>
-         a.id === selectedAppointment.id ? { ...a, report: undefined } : a,
-      );
-      setAppointments(updated);
-      setDeleteConfirmVisible(false);
-      setSelectedAppointment(null);
+
+      try {
+         await ReportService.deleteReport(selectedAppointment.id);
+         setAppointments((prev) =>
+            prev.map((appointment) =>
+               appointment.id === selectedAppointment.id
+                  ? { ...appointment, report: null }
+                  : appointment,
+            ),
+         );
+         setDeleteConfirmVisible(false);
+         setSelectedAppointment(null);
+      } catch (error: any) {
+         Alert.alert("Error", error.message || "Failed to delete report");
+      }
    };
 
-   const handleSaveReport = (reportData: any) => {
-      // Mock save – update the local state
+   const handleSaveReport = async (reportData: any) => {
       if (!selectedAppointment) return;
-      const now = new Date().toISOString();
-      const newReport: AppointmentReport = {
-         id: modalMode === "create" ? `r${Date.now()}` : viewReport!.id,
-         title: reportData.title,
-         content: reportData.content,
-         diagnosis: reportData.diagnosis,
-         prescription: reportData.prescription,
-         recommendations: reportData.recommendations,
-         fileUrl: reportData.fileUrl,
-         createdAt: viewReport?.createdAt || now,
-         updatedAt: now,
-      };
-      const updated = appointments.map((a) =>
-         a.id === selectedAppointment.id ? { ...a, report: newReport } : a,
-      );
-      setAppointments(updated);
-      setModalVisible(false);
-      setSelectedAppointment(null);
-      setViewReport(null);
+
+      try {
+         const savedReport =
+            modalMode === "create"
+               ? await ReportService.createReport(
+                    selectedAppointment.id,
+                    reportData,
+                 )
+               : await ReportService.updateReport(
+                    selectedAppointment.id,
+                    reportData,
+                 );
+
+         setAppointments((prev) =>
+            prev.map((appointment) =>
+               appointment.id === selectedAppointment.id
+                  ? { ...appointment, report: savedReport }
+                  : appointment,
+            ),
+         );
+         setModalVisible(false);
+         setSelectedAppointment(null);
+         setViewReport(null);
+      } catch (error: any) {
+         Alert.alert("Error", error.message || "Failed to save report");
+      }
    };
 
-   const formatDateTime = (iso: string) => {
-      const date = new Date(iso);
-      return date.toLocaleString();
-   };
+   const formatDateTime = (iso: string) => new Date(iso).toLocaleString();
 
    const renderAppointment = ({ item }: { item: Appointment }) => (
       <View style={styles.row}>
@@ -189,7 +187,7 @@ export default function DoctorAppointments() {
                      <MaterialCommunityIcons
                         name="pencil"
                         size={20}
-                        color="#3b82f6"
+                        color="#2563eb"
                      />
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -205,15 +203,14 @@ export default function DoctorAppointments() {
                </>
             ) : (
                <TouchableOpacity
-                  style={[styles.actionButton, styles.addButton]}
+                  style={styles.actionButton}
                   onPress={() => handleCreateReport(item)}
                >
                   <MaterialCommunityIcons
                      name="plus"
                      size={20}
-                     color="#ffffff"
+                     color="#10b981"
                   />
-                  <Text style={styles.addButtonText}>Add Report</Text>
                </TouchableOpacity>
             )}
          </View>
@@ -245,32 +242,35 @@ export default function DoctorAppointments() {
                   />
                </View>
 
-               {/* Table Header */}
-               <View style={styles.headerRow}>
-                  <Text style={[styles.headerCell, { flex: 1.5 }]}>
-                     Patient
-                  </Text>
-                  <Text style={[styles.headerCell, { flex: 1.2 }]}>Clinic</Text>
-                  <Text style={[styles.headerCell, { flex: 1.5 }]}>Start</Text>
-                  <Text style={[styles.headerCell, { flex: 1.5 }]}>End</Text>
-                  <Text style={[styles.headerCell, { flex: 2 }]}>Actions</Text>
-               </View>
-
-               <FlatList
-                  data={filteredAppointments}
-                  renderItem={renderAppointment}
-                  keyExtractor={(item) => item.id}
-                  ListEmptyComponent={
-                     <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyText}>
-                           No appointments found.
-                        </Text>
+               {loading ? (
+                  <View style={styles.emptyContainer}>
+                     <ActivityIndicator size="large" color="#2563eb" />
+                  </View>
+               ) : (
+                  <>
+                     <View style={styles.headerRow}>
+                        <Text style={[styles.headerCell, { flex: 1.5 }]}>Patient</Text>
+                        <Text style={[styles.headerCell, { flex: 1.2 }]}>Clinic</Text>
+                        <Text style={[styles.headerCell, { flex: 1.5 }]}>Start</Text>
+                        <Text style={[styles.headerCell, { flex: 1.5 }]}>End</Text>
+                        <Text style={[styles.headerCell, { flex: 2 }]}>Actions</Text>
                      </View>
-                  }
-                  contentContainerStyle={styles.listContent}
-               />
+                     <FlatList
+                        data={filteredAppointments}
+                        renderItem={renderAppointment}
+                        keyExtractor={(item) => item.id}
+                        ListEmptyComponent={
+                           <View style={styles.emptyContainer}>
+                              <Text style={styles.emptyText}>
+                                 No appointments found.
+                              </Text>
+                           </View>
+                        }
+                        contentContainerStyle={styles.listContent}
+                     />
+                  </>
+               )}
 
-               {/* Report Modal (create/edit/view) */}
                <ReportModal
                   visible={modalVisible}
                   onClose={() => setModalVisible(false)}
@@ -288,7 +288,6 @@ export default function DoctorAppointments() {
                   onSave={handleSaveReport}
                />
 
-               {/* Delete Confirmation Modal */}
                <Modal
                   visible={deleteConfirmVisible}
                   transparent
@@ -305,9 +304,7 @@ export default function DoctorAppointments() {
                                  color="#ef4444"
                               />
                            </View>
-                           <Text style={styles.deleteTitle}>
-                              Delete Report?
-                           </Text>
+                           <Text style={styles.deleteTitle}>Delete Report?</Text>
                         </View>
                         <Text style={styles.deleteMessage}>
                            Are you sure you want to delete the report for{" "}

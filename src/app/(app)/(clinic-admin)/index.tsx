@@ -10,7 +10,7 @@ import {
    View,
 } from "react-native";
 import { Guard } from "../../../components/Guard";
-import { ClinicAdminAPI, Patient } from "../../../services/mock/clinicAdmin";
+import { ClinicAdminAPI, Patient } from "../../../services/clinicAdmin";
 
 // Mock recent appointments (since we don't have API for activity)
 const recentAppointments = [

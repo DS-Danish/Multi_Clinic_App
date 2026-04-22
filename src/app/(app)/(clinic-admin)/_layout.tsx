@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../../context/AuthContext";
-import { ClinicAdminAPI } from "../../../services/mock/clinicAdmin";
+import { ClinicAdminAPI } from "../../../services/clinicAdmin";
 
 // Menu items with const assertions so path is treated as literal string
 const menuItems = [

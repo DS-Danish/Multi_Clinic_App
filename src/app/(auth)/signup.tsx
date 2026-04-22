@@ -43,14 +43,16 @@ export default function SignupScreen() {
             password: form.password,
             role: form.role,
          });
-         // Navigation after successful registration
-         if (form.role === "DOCTOR") {
-            router.replace("/(app)/(doctor)/dashboard");
-         } else if (form.role === "RECEPTIONIST") {
-            router.replace("/(app)/(receptionist)");
-         } else {
-            router.replace("/(app)/(patient)/details");
-         }
+         Alert.alert(
+            "Registration successful",
+            "Check your email for the verification link, then sign in.",
+            [
+               {
+                  text: "Go to login",
+                  onPress: () => router.replace("/login"),
+               },
+            ],
+         );
       } catch (error: any) {
          Alert.alert("Error", error.message);
       }
@@ -286,9 +288,12 @@ export default function SignupScreen() {
                      <Button
                         disabled={authLoading}
                         onPress={handleSignup}
-                        title="Create Account"
+                        title={
+                           authLoading ? "Creating Account..." : "Create Account"
+                        }
                         style={styles.signupButton}
                         textStyle={styles.signupButtonText}
+                        loading={authLoading}
                      />
 
                      {/* Divider */}
