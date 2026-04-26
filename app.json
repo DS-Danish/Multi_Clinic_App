@@ -44,8 +44,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "4a9952c8-6888-4bf9-b4ed-3332ba69d30e"
+        "projectId": "9d574a6d-caab-4401-80dd-7ec232d9f0b7"
       }
-    }
+    },
+    "owner": "danish-sohail-ds"
   }
 }

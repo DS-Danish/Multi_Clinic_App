@@ -181,7 +181,7 @@ export default function SignupScreen() {
                         onChangeText={(text) =>
                            setForm({ ...form, name: text })
                         }
-                        placeholder="John Doe"
+                        placeholder="Danish Sohail"
                         style={styles.inputField}
                      />
 
@@ -319,7 +319,7 @@ export default function SignupScreen() {
                      <Text style={styles.helpText}>
                         Need help? Contact{" "}
                         <Text style={styles.helpLink}>
-                           support@clinicconnect.ai
+                           dsohail402@gmail.com
                         </Text>
                      </Text>
                   </View>

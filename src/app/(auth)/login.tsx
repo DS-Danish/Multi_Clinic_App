@@ -283,7 +283,7 @@ export default function LoginScreen() {
                      <Text style={styles.helpText}>
                         Need help? Contact{" "}
                         <Text style={styles.helpLink}>
-                           support@clinicconnect.ai
+                           dsohail402@gmail.com
                         </Text>
                      </Text>
                   </View>
