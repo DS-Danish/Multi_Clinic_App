@@ -11,6 +11,7 @@ import {
    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { ContactUsButton } from "../../../components/ContactUsButton";
 import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import { CustomPicker } from "../../../components/CustomPicker";
 import { EditAppointmentDialog } from "../../../components/EditAppointmentDialog";
@@ -825,6 +826,8 @@ export default function PatientDetails() {
                      )}
                   </View>
                )}
+
+               <ContactUsButton style={styles.contactSection} />
             </ScrollView>
 
             {/* Dialogs */}
@@ -1001,6 +1004,10 @@ const styles = StyleSheet.create({
    },
    tabContent: {
       marginTop: 16,
+   },
+   contactSection: {
+      marginTop: 8,
+      marginBottom: 24,
    },
    statsGrid: {
       flexDirection: "row",

@@ -314,14 +314,6 @@ export default function SignupScreen() {
                            </Text>
                         </TouchableOpacity>
                      </Link>
-
-                     {/* Help Link */}
-                     <Text style={styles.helpText}>
-                        Need help? Contact{" "}
-                        <Text style={styles.helpLink}>
-                           dsohail402@gmail.com
-                        </Text>
-                     </Text>
                   </View>
                </View>
             </View>

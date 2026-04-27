@@ -12,6 +12,7 @@ import {
    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { ContactUsButton } from "../../../components/ContactUsButton";
 import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import { CustomPicker } from "../../../components/CustomPicker";
 import { EditAppointmentDialog } from "../../../components/EditAppointmentDialog";
@@ -672,6 +673,8 @@ export default function ReceptionistDashboard() {
                      </View>
                   </View>
                </View>
+
+               <ContactUsButton style={styles.contactSection} />
             </ScrollView>
 
             {/* Dialogs */}
@@ -879,6 +882,9 @@ const styles = StyleSheet.create({
       shadowOpacity: 0.1,
       shadowRadius: 4,
       elevation: 3,
+   },
+   contactSection: {
+      marginTop: 20,
    },
    formHeader: {
       backgroundColor: "#8b5cf6",

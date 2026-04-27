@@ -12,6 +12,7 @@ import {
    TouchableOpacity,
    View,
 } from "react-native";
+import { ContactUsButton } from "../../../components/ContactUsButton";
 import { Guard } from "../../../components/Guard";
 import { Clinic, SuperAdminAPI } from "../../../services/superAdmin";
 
@@ -221,6 +222,8 @@ export default function SuperAdminDashboard() {
                   </View>
                </View>
             </Modal>
+
+            <ContactUsButton style={styles.contactSection} />
          </ScrollView>
       </Guard>
    );
@@ -300,6 +303,9 @@ const styles = StyleSheet.create({
       shadowOpacity: 0.05,
       shadowRadius: 2,
       elevation: 2,
+   },
+   contactSection: {
+      marginTop: 20,
    },
    tableHeader: {
       flexDirection: "row",

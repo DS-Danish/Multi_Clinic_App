@@ -9,6 +9,7 @@ import {
    TouchableOpacity,
    View,
 } from "react-native";
+import { ContactUsButton } from "../../../components/ContactUsButton";
 import { Guard } from "../../../components/Guard";
 import { ClinicAdminAPI, Patient } from "../../../services/clinicAdmin";
 
@@ -391,6 +392,8 @@ export default function ClinicAdminDashboard() {
                         </View>
                      ))}
                   </View>
+
+                  <ContactUsButton style={styles.contactSection} />
                </>
             )}
          </ScrollView>
@@ -458,6 +461,9 @@ const styles = StyleSheet.create({
       shadowOpacity: 0.05,
       shadowRadius: 2,
       elevation: 2,
+   },
+   contactSection: {
+      marginBottom: 20,
    },
    sectionHeader: {
       flexDirection: "row",

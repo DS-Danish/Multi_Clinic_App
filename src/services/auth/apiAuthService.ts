@@ -1,5 +1,10 @@
 import { apiRequest } from "../api";
-import { clearSession, getStoredUser, storeSession } from "./sessionStorage";
+import {
+   clearSession,
+   getStoredUser,
+   hydrateSession,
+   storeSession,
+} from "./sessionStorage";
 import { LoginCredentials, RegisterData, User } from "./types";
 
 type LoginResponse = {
@@ -47,7 +52,7 @@ const normalizeUser = (user: LoginResponse["user"]): User => ({
 
 class ApiAuthService {
    async initialize(): Promise<void> {
-      return Promise.resolve();
+      await hydrateSession();
    }
 
    async register(data: RegisterData): Promise<RegisterResponse> {
@@ -75,6 +80,7 @@ class ApiAuthService {
    }
 
    async logout(): Promise<void> {
+         console.log("LOGOUT CALLED");
       await clearSession();
    }
 

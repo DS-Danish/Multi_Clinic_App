@@ -25,12 +25,12 @@ interface ChatMessage {
 
 export default function ChatbotScreen() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [inputText, setInputText] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const flatListRef = useRef<FlatList>(null);
+  const [inputText, setInputText] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+  const flatListRef = useRef<FlatList<ChatMessage>>(null);
 
-  const sendMessage = useCallback(async () => {
+  const sendMessage = useCallback(async (): Promise<void> => {
     const question = inputText.trim();
     if (!question || loading) return;
 
@@ -46,35 +46,48 @@ export default function ChatbotScreen() {
     setError("");
 
     try {
-        const token = await getStoredToken();
+      const token = await getStoredToken();
+
       const response = await fetch(`${CHATBOT_API_URL}/chat`, {
         method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ question }),
       });
 
+      const data: any = await response.json().catch(() => null);
+
       if (!response.ok) {
-        const errData = await response.json().catch(() => null);
         throw new Error(
-          errData?.detail || `Server error (${response.status})`
+          data?.detail ||
+            data?.message ||
+            data?.error ||
+            `Chatbot server error (${response.status})`
         );
       }
 
-      const data = await response.json();
+      const assistantText: string =
+        data?.Assistant ||
+        data?.assistant ||
+        data?.answer ||
+        data?.response ||
+        "No response generated.";
 
       const assistantMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: data.Assistant || "No response generated.",
+        content: assistantText,
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
-    } catch (err: any) {
+    } catch (err: unknown) {
       const errorMessage =
-        err.message || "Failed to get response. Is the chatbot server running?";
+        err instanceof Error
+          ? err.message
+          : "Failed to get response. Is the chatbot server running?";
+
       setError(errorMessage);
       Alert.alert("Error", errorMessage);
     } finally {
@@ -112,7 +125,6 @@ export default function ChatbotScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => router.back()}
@@ -124,6 +136,7 @@ export default function ChatbotScreen() {
             color="#1f2937"
           />
         </TouchableOpacity>
+
         <View style={styles.headerTitleContainer}>
           <View style={styles.headerIconContainer}>
             <MaterialCommunityIcons name="robot" size={24} color="#fff" />
@@ -137,7 +150,6 @@ export default function ChatbotScreen() {
         </View>
       </View>
 
-      {/* Error banner */}
       {error !== "" && (
         <View style={styles.errorBanner}>
           <MaterialCommunityIcons
@@ -152,7 +164,6 @@ export default function ChatbotScreen() {
         </View>
       )}
 
-      {/* Messages */}
       <KeyboardAvoidingView
         style={styles.chatContainer}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -170,7 +181,6 @@ export default function ChatbotScreen() {
               Ask a question about heart disease, skin conditions, or diabetes
             </Text>
 
-            {/* Example questions */}
             <View style={styles.examplesContainer}>
               <Text style={styles.examplesTitle}>Try asking:</Text>
               {[
@@ -209,7 +219,6 @@ export default function ChatbotScreen() {
           />
         )}
 
-        {/* Typing indicator */}
         {loading && (
           <View style={styles.typingIndicator}>
             <ActivityIndicator size="small" color="#3b82f6" />
@@ -217,7 +226,6 @@ export default function ChatbotScreen() {
           </View>
         )}
 
-        {/* Input area */}
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.textInput}

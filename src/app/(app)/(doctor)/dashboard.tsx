@@ -8,13 +8,15 @@ import {
    TouchableOpacity,
    View,
 } from "react-native";
+import { ContactUsButton } from "../../../components/ContactUsButton";
 import { Guard } from "../../../components/Guard";
 import { useAuth } from "../../../context/AuthContext";
 import { DoctorService } from "../../../services/doctor";
 import { ReportService } from "../../../services/report";
 
 export default function DoctorDashboard() {
-   const { user } = useAuth();
+   const { user, loading } = useAuth();
+
    const [stats, setStats] = useState([
       {
          label: "Today's Appointments",
@@ -43,11 +45,12 @@ export default function DoctorDashboard() {
    ]);
 
    useEffect(() => {
+      if (loading) return;
       if (!user?.id) return;
 
-      const loadStats = async () => {
+      const loadStats = async (): Promise<void> => {
          try {
-            const [appointments, patients, reports] = await Promise.all([
+            const [appointments, patients] = await Promise.all([
                DoctorService.getAppointments(user.id),
                DoctorService.getPatients(),
                ReportService.getDoctorReports(user.id),
@@ -102,7 +105,7 @@ export default function DoctorDashboard() {
       };
 
       loadStats();
-   }, [user?.id]);
+   }, [user?.id, loading]);
 
    const quickActions = [
       {
@@ -137,9 +140,17 @@ export default function DoctorDashboard() {
 
    type QuickActionRoute = (typeof quickActions)[number]["route"];
 
-   const handleNavigation = (route: QuickActionRoute) => {
+   const handleNavigation = (route: QuickActionRoute): void => {
       router.push(route);
    };
+
+   if (loading) {
+      return (
+         <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading...</Text>
+         </View>
+      );
+   }
 
    return (
       <Guard allowedRoles={["DOCTOR"]}>
@@ -147,7 +158,6 @@ export default function DoctorDashboard() {
             style={styles.container}
             contentContainerStyle={styles.content}
          >
-            {/* Greeting */}
             <View style={styles.greetingContainer}>
                <Text style={styles.greeting}>
                   Welcome back, Dr. {user?.name?.split(" ")[1] || user?.name}!
@@ -158,7 +168,6 @@ export default function DoctorDashboard() {
                </Text>
             </View>
 
-            {/* Stats Grid */}
             <View style={styles.statsGrid}>
                {stats.map((stat, index) => (
                   <View key={index} style={styles.statCard}>
@@ -180,7 +189,6 @@ export default function DoctorDashboard() {
                ))}
             </View>
 
-            {/* Quick Actions */}
             <View style={styles.quickActionsContainer}>
                <Text style={styles.sectionTitle}>Quick Actions</Text>
                <View style={styles.actionsList}>
@@ -214,6 +222,8 @@ export default function DoctorDashboard() {
                   ))}
                </View>
             </View>
+
+            <ContactUsButton style={styles.contactSection} />
          </ScrollView>
       </Guard>
    );
@@ -227,6 +237,16 @@ const styles = StyleSheet.create({
    content: {
       padding: 16,
       paddingBottom: 32,
+   },
+   loadingContainer: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: "#f9fafb",
+   },
+   loadingText: {
+      fontSize: 16,
+      color: "#6b7280",
    },
    greetingContainer: {
       marginBottom: 24,
@@ -248,7 +268,7 @@ const styles = StyleSheet.create({
       marginBottom: 24,
    },
    statCard: {
-      width: "47%", // approximately 2 per row with gap
+      width: "47%",
       backgroundColor: "#ffffff",
       borderRadius: 12,
       padding: 16,
@@ -286,6 +306,9 @@ const styles = StyleSheet.create({
       shadowOpacity: 0.05,
       shadowRadius: 4,
       elevation: 2,
+   },
+   contactSection: {
+      marginTop: 20,
    },
    sectionTitle: {
       fontSize: 18,

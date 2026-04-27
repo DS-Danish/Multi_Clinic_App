@@ -8,8 +8,8 @@ export default function DoctorLayout() {
    const segments = useSegments();
    const currentScreen = segments[segments.length - 1];
 
-   const handleLogout = () => {
-      logout();
+   const handleLogout = async () => {
+      await logout();
       router.replace("/login");
    };
 

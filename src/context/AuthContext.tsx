@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { authService } from "../services/auth";
 import { User, UserRole } from "../services/auth/types";
+import { hydrateSession } from "../services/auth/sessionStorage";
 
 export type RegisterableRole = "DOCTOR" | "PATIENT" | "RECEPTIONIST";
 
@@ -24,23 +25,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
    const [loading, setLoading] = useState(true);
 
    useEffect(() => {
-      authService
-         .initialize()
-         .then(() => {
-            authService
-               .getCurrentUser()
-               .then((current) => {
-                  setUser(current);
-                  setLoading(false);
-               })
-               .catch(() => setLoading(false));
-         })
-         .catch(() => setLoading(false));
+      const init = async () => {
+         try {
+            // ✅ CRITICAL FIX
+            await hydrateSession();
+
+            const current = await authService.getCurrentUser();
+            setUser(current);
+         } catch (err) {
+            console.log("AUTH INIT ERROR:", err);
+         } finally {
+            setLoading(false);
+         }
+      };
+
+      init();
    }, []);
 
    const login = async (email: string, password: string, role?: UserRole) => {
       try {
          const loggedUser = await authService.login({ email, password, role });
+
+         // ✅ ensure state updates after session is ready
          setUser(loggedUser);
       } catch (error: any) {
          throw new Error(error.message || "Login failed");
@@ -53,7 +59,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       password: string;
       role: RegisterableRole;
    }) => {
-      // Ensure role is allowed
       if (
          data.role !== "PATIENT" &&
          data.role !== "DOCTOR" &&
@@ -61,6 +66,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       ) {
          throw new Error("Invalid role for registration");
       }
+
       try {
          await authService.register(data);
       } catch (error: any) {
