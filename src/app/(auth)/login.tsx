@@ -65,6 +65,20 @@ export default function LoginScreen() {
          await login(email, password, activeRole);
          // Navigation handled by useEffect
       } catch (error: any) {
+         if (
+            typeof error.message === "string" &&
+            error.message.toLowerCase().includes("verify your email")
+         ) {
+            router.push({
+               pathname: "/verify-email",
+               params: {
+                  email: email.trim(),
+                  sent: "1",
+               },
+            });
+            return;
+         }
+
          Alert.alert("Error", error.message);
       }
    };

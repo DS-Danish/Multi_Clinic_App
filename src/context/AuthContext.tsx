@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { authService } from "../services/auth";
-import { User, UserRole } from "../services/auth/types";
+import { RegisterResponse, User, UserRole } from "../services/auth/types";
 import { hydrateSession } from "../services/auth/sessionStorage";
 
 export type RegisterableRole = "DOCTOR" | "PATIENT" | "RECEPTIONIST";
@@ -13,7 +13,7 @@ interface AuthContextType {
       email: string;
       password: string;
       role: RegisterableRole;
-   }) => Promise<void>;
+   }) => Promise<RegisterResponse>;
    logout: () => Promise<void>;
    loading: boolean;
 }
@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       email: string;
       password: string;
       role: RegisterableRole;
-   }) => {
+   }): Promise<RegisterResponse> => {
       if (
          data.role !== "PATIENT" &&
          data.role !== "DOCTOR" &&
@@ -68,7 +68,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       try {
-         await authService.register(data);
+         return await authService.register(data);
       } catch (error: any) {
          throw new Error(error.message || "Registration failed");
       }

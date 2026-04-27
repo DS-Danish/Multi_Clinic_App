@@ -37,22 +37,19 @@ export default function SignupScreen() {
          return;
       }
       try {
-         await register({
+         const response = await register({
             name: form.name,
             email: form.email,
             password: form.password,
             role: form.role,
          });
-         Alert.alert(
-            "Registration successful",
-            "Check your email for the verification link, then sign in.",
-            [
-               {
-                  text: "Go to login",
-                  onPress: () => router.replace("/login"),
-               },
-            ],
-         );
+         router.replace({
+            pathname: "/verify-email",
+            params: {
+               email: response.verificationEmailSentTo,
+               sent: response.verificationEmailSent ? "1" : "0",
+            },
+         });
       } catch (error: any) {
          Alert.alert("Error", error.message);
       }

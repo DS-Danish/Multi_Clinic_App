@@ -1,11 +1,13 @@
 import { apiRequest } from "../api";
+import { clearSession, getStoredUser, hydrateSession, storeSession } from "./sessionStorage";
 import {
-   clearSession,
-   getStoredUser,
-   hydrateSession,
-   storeSession,
-} from "./sessionStorage";
-import { LoginCredentials, RegisterData, User } from "./types";
+   LoginCredentials,
+   RegisterData,
+   RegisterResponse,
+   ResendVerificationResponse,
+   User,
+   VerifyEmailResponse,
+} from "./types";
 
 type LoginResponse = {
    accessToken: string;
@@ -20,22 +22,6 @@ type LoginResponse = {
       createdAt?: string | Date;
       updatedAt?: string | Date;
    };
-};
-
-type RegisterResponse = {
-   message: string;
-   user: {
-      id: string;
-      name: string;
-      email: string;
-      role: User["role"];
-      emailVerified?: boolean;
-   };
-};
-
-type VerifyEmailResponse = {
-   message: string;
-   success: boolean;
 };
 
 const normalizeUser = (user: LoginResponse["user"]): User => ({
@@ -93,6 +79,19 @@ class ApiAuthService {
          `/auth/verify-email?token=${encodeURIComponent(token)}`,
          {
             method: "GET",
+            auth: false,
+         },
+      );
+   }
+
+   async resendVerificationEmail(
+      email: string,
+   ): Promise<ResendVerificationResponse> {
+      return apiRequest<ResendVerificationResponse>(
+         "/auth/resend-verification",
+         {
+            method: "POST",
+            body: { email },
             auth: false,
          },
       );

@@ -25,6 +25,31 @@ export interface RegisterData {
    phone?: string;
 }
 
+export interface RegisterResponse {
+   message: string;
+   requiresEmailVerification: boolean;
+   verificationEmailSent: boolean;
+   verificationEmailSentTo: string;
+   user: {
+      id: string;
+      name: string;
+      email: string;
+      role: Exclude<UserRole, "SYSTEM_ADMIN" | "CLINIC_ADMIN">;
+      emailVerified?: boolean;
+   };
+}
+
+export interface VerifyEmailResponse {
+   message: string;
+   success: boolean;
+}
+
+export interface ResendVerificationResponse {
+   message: string;
+   success: boolean;
+   sentTo?: string;
+}
+
 export interface LoginCredentials {
    email: string;
    password: string;
